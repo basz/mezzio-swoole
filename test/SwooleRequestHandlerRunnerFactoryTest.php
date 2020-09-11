@@ -12,6 +12,8 @@ namespace MezzioTest\Swoole;
 
 use Mezzio\ApplicationPipeline;
 use Mezzio\Response\ServerRequestErrorResponseGenerator;
+use Mezzio\Swoole\Event\WorkerListenerProvider;
+use Mezzio\Swoole\Event\WorkerListenerProviderInterface;
 use Mezzio\Swoole\HotCodeReload\Reloader;
 use Mezzio\Swoole\Log\AccessLogInterface;
 use Mezzio\Swoole\Log\Psr3AccessLogDecorator;
@@ -47,6 +49,8 @@ class SwooleRequestHandlerRunnerFactoryTest extends TestCase
         $this->logger                = $this->prophesize(AccessLogInterface::class);
         $this->hotCodeReloader       = $this->prophesize(Reloader::class);
 
+        $this->workerListenerProvider = $this->prophesize(WorkerListenerProviderInterface::class);
+
         $this->container = $this->prophesize(ContainerInterface::class);
         $this->container
             ->get(ApplicationPipeline::class)
@@ -68,6 +72,12 @@ class SwooleRequestHandlerRunnerFactoryTest extends TestCase
         $this->container
             ->get(SwooleHttpServer::class)
             ->willReturn($this->createMock(SwooleHttpServer::class));
+
+        $this->container
+            ->get(WorkerListenerProviderInterface::class)
+            ->willReturn(function() {
+                return $this->workerListenerProvider->reveal();
+            });
     }
 
     public function configureAbsentStaticResourceHandler()
@@ -124,12 +134,24 @@ class SwooleRequestHandlerRunnerFactoryTest extends TestCase
             ->shouldNotBeCalled();
     }
 
+    public function configureAbsentWorkerListenerProvider() : void
+    {
+        $this->container
+            ->has(WorkerListenerProviderInterface::class)
+            ->willReturn(false);
+
+        $this->container
+            ->get(WorkerListenerProviderInterface::class)
+            ->willReturn(null);
+    }
+
     public function testInvocationWithoutOptionalServicesConfiguresInstanceWithDefaults()
     {
         $this->configureAbsentStaticResourceHandler();
         $this->configureAbsentLoggerService();
         $this->configureAbsentConfiguration();
         $this->configureAbsentHotCodeReloader();
+        $this->configureAbsentWorkerListenerProvider();
         $factory = new SwooleRequestHandlerRunnerFactory();
         $runner  = $factory($this->container->reveal());
         $this->assertInstanceOf(SwooleRequestHandlerRunner::class, $runner);
@@ -142,6 +164,7 @@ class SwooleRequestHandlerRunnerFactoryTest extends TestCase
         $this->configureAbsentStaticResourceHandler();
         $this->configureAbsentConfiguration();
         $this->configureAbsentHotCodeReloader();
+        $this->configureAbsentWorkerListenerProvider();
         $this->container
             ->has(AccessLogInterface::class)
             ->willReturn(true);
@@ -159,6 +182,7 @@ class SwooleRequestHandlerRunnerFactoryTest extends TestCase
     {
         $this->configureAbsentLoggerService();
         $this->configureAbsentHotCodeReloader();
+        $this->configureAbsentWorkerListenerProvider();
         $this->container
             ->has(StaticResourceHandlerInterface::class)
             ->willReturn(true);
@@ -190,6 +214,7 @@ class SwooleRequestHandlerRunnerFactoryTest extends TestCase
     {
         $this->configureAbsentLoggerService();
         $this->configureAbsentHotCodeReloader();
+        $this->configureAbsentWorkerListenerProvider();
         $this->container
             ->has(StaticResourceHandlerInterface::class)
             ->willReturn(true);
@@ -228,6 +253,7 @@ class SwooleRequestHandlerRunnerFactoryTest extends TestCase
     {
         $this->configureAbsentLoggerService();
         $this->configureAbsentHotCodeReloader();
+        $this->configureAbsentWorkerListenerProvider();
         $this->container
             ->has(StaticResourceHandlerInterface::class)
             ->willReturn(false);
@@ -252,6 +278,7 @@ class SwooleRequestHandlerRunnerFactoryTest extends TestCase
     public function testFactoryWillUseConfiguredHotCodeReloaderWhenPresent()
     {
         $this->configureAbsentLoggerService();
+        $this->configureAbsentWorkerListenerProvider();
         $this->container->has(Reloader::class)->willReturn(true);
         $this->container
             ->get(Reloader::class)
