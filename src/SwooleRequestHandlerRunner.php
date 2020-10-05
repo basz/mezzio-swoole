@@ -15,6 +15,8 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use Swoole\Http\Request as SwooleHttpRequest;
 use Swoole\Http\Response as SwooleHttpResponse;
 use Swoole\Http\Server as SwooleHttpServer;
+use Swoole\Server;
+use Swoole\Server\Task;
 
 /**
  * Starts a Swoole web server that handles incoming requests.
@@ -61,6 +63,8 @@ class SwooleRequestHandlerRunner extends RequestHandlerRunner
         $this->httpServer->on('workererror', [$this, 'onWorkerError']);
         $this->httpServer->on('request', [$this, 'onRequest']);
         $this->httpServer->on('shutdown', [$this, 'onShutdown']);
+        $this->httpServer->on('task', [$this, 'onTask']);
+        $this->httpServer->on('finish', [$this, 'onFinish']);
         $this->httpServer->start();
     }
 
@@ -110,5 +114,21 @@ class SwooleRequestHandlerRunner extends RequestHandlerRunner
     public function onShutdown(SwooleHttpServer $server): void
     {
         $this->dispatcher->dispatch(new Event\ServerShutdownEvent($server));
+    }
+
+    /**
+     * Handle incoming tasks
+     */
+    public function onTask(SwooleHttpServer $server, Task $task): void
+    {
+        $this->dispatcher->dispatch(new Event\TaskEvent($server, $task));
+    }
+
+    /**
+     * Handle finished tasks
+     */
+    public function onFinish(SwooleHttpServer $server, int $taskId, $data): void
+    {
+        $this->dispatcher->dispatch(new Event\FinishEvent($server, $taskId, $data));
     }
 }
