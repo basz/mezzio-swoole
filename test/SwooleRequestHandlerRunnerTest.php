@@ -10,9 +10,11 @@ declare(strict_types=1);
 
 namespace MezzioTest\Swoole;
 
+use Mezzio\Swoole\Event\FinishEvent;
 use Mezzio\Swoole\Event\RequestEvent;
 use Mezzio\Swoole\Event\ServerShutdownEvent;
 use Mezzio\Swoole\Event\ServerStartEvent;
+use Mezzio\Swoole\Event\TaskEvent;
 use Mezzio\Swoole\Event\WorkerErrorEvent;
 use Mezzio\Swoole\Event\WorkerStartEvent;
 use Mezzio\Swoole\Event\WorkerStopEvent;
@@ -24,6 +26,7 @@ use Swoole\Http\Request as SwooleHttpRequest;
 use Swoole\Http\Response as SwooleHttpResponse;
 use Swoole\Http\Server as SwooleHttpServer;
 
+use Swoole\Server\Task;
 use function random_int;
 
 class SwooleRequestHandlerRunnerTest extends TestCase
@@ -70,7 +73,7 @@ class SwooleRequestHandlerRunnerTest extends TestCase
     public function testRunRegistersHttpServerListenersAndStartsServer(): void
     {
         $this->httpServer
-            ->expects($this->exactly(6))
+            ->expects($this->exactly(8))
             ->method('on')
             ->withConsecutive(
                 ['start', [$this->runner, 'onStart']],
@@ -79,6 +82,8 @@ class SwooleRequestHandlerRunnerTest extends TestCase
                 ['workererror', [$this->runner, 'onWorkerError']],
                 ['request', [$this->runner, 'onRequest']],
                 ['shutdown', [$this->runner, 'onShutdown']],
+                ['task', [$this->runner, 'onTask']],
+                ['finish', [$this->runner, 'onFinish']],
             );
 
         $this->httpServer
@@ -153,5 +158,30 @@ class SwooleRequestHandlerRunnerTest extends TestCase
             ->with($this->equalTo(new ServerShutdownEvent($this->httpServer)));
 
         $this->runner->onShutdown($this->httpServer);
+    }
+
+    public function testOnTaskDispatchesTaskEvent(): void
+    {
+        $task = $this->createMock(Task::class);
+
+        $this->dispatcher
+            ->expects($this->once())
+            ->method('dispatch')
+            ->with($this->equalTo(new TaskEvent($this->httpServer, $task)));
+
+        $this->runner->onTask($this->httpServer, $task);
+    }
+
+    public function testOnFinishDispatchesFinishEvent(): void
+    {
+        $taskId = random_int(1, 4);
+        $data = "";
+
+        $this->dispatcher
+            ->expects($this->once())
+            ->method('dispatch')
+            ->with($this->equalTo(new FinishEvent($this->httpServer, $taskId, $data)));
+
+        $this->runner->onFinish($this->httpServer, $taskId, $data);
     }
 }
