@@ -15,7 +15,6 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use Swoole\Http\Request as SwooleHttpRequest;
 use Swoole\Http\Response as SwooleHttpResponse;
 use Swoole\Http\Server as SwooleHttpServer;
-use Swoole\Server;
 use Swoole\Server\Task;
 
 /**

@@ -25,8 +25,8 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use Swoole\Http\Request as SwooleHttpRequest;
 use Swoole\Http\Response as SwooleHttpResponse;
 use Swoole\Http\Server as SwooleHttpServer;
-
 use Swoole\Server\Task;
+
 use function random_int;
 
 class SwooleRequestHandlerRunnerTest extends TestCase
@@ -175,7 +175,7 @@ class SwooleRequestHandlerRunnerTest extends TestCase
     public function testOnFinishDispatchesFinishEvent(): void
     {
         $taskId = random_int(1, 4);
-        $data = "";
+        $data   = "";
 
         $this->dispatcher
             ->expects($this->once())
