@@ -125,6 +125,8 @@ class SwooleRequestHandlerRunner extends RequestHandlerRunner
 
     /**
      * Handle finished tasks
+     *
+     * @param mixed $data
      */
     public function onFinish(SwooleHttpServer $server, int $taskId, $data): void
     {
